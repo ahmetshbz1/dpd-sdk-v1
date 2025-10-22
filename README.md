@@ -384,6 +384,27 @@ const package = {
 
 ## Environment Configuration
 
+### Setup .env File
+
+```bash
+# Copy example file
+cp .env.example .env
+
+# Edit with your credentials
+# .env
+DPD_DEMO_LOGIN=your-demo-fid
+DPD_DEMO_PASSWORD=your-demo-password
+DPD_DEMO_MASTER_FID=your-demo-master-fid
+
+DPD_PROD_LOGIN=your-production-fid
+DPD_PROD_PASSWORD=your-production-password
+DPD_PROD_MASTER_FID=your-production-master-fid
+
+NODE_ENV=development
+```
+
+### Usage with Environment Variables
+
 ```typescript
 // Demo/Test Environment
 const demoClient = new DPDClient({
