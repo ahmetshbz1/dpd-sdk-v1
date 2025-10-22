@@ -41,6 +41,7 @@ export class InternationalService {
       soapClient,
       'generateInternationalPackageNumbersV1',
       {
+        authDataV1: config.auth,
         internationalOpenUMLFeV1: this.buildInternationalPayload(
           validatedPackages as Array<
             Omit<InternationalPackage, 'payerType'> & {
@@ -48,7 +49,6 @@ export class InternationalService {
             }
           >
         ),
-        authDataV1: config.auth,
       }
     );
 

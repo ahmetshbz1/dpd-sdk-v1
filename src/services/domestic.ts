@@ -54,6 +54,7 @@ export class DomesticService {
     const config = this.client.getConfig();
 
     const payload = {
+      authDataV1: config.auth,
       openUMLFeV3: this.buildOpenUMLPayload(
         validatedPackages as Array<
           Omit<DomesticPackage, 'payerType'> & {
@@ -63,7 +64,6 @@ export class DomesticService {
       ),
       pkgNumsGenerationPolicyV1: 'STOP_ON_FIRST_ERROR',
       langCode: 'PL',
-      authDataV1: config.auth,
     };
 
     const rawResult = await invokeSoapMethod(
@@ -130,12 +130,12 @@ export class DomesticService {
       soapClient,
       'generateSpedLabelsV4',
       {
+        authDataV1: config.auth,
         dpdServicesParamsV1: { waybills },
         outputDocFormatV1: options.format || 'PDF',
         outputDocPageFormatV1: options.pageFormat || 'A4',
         outputLabelType: 'LABEL',
         labelVariant: options.variant || 'BIC3',
-        authDataV1: config.auth,
       }
     );
 
@@ -167,8 +167,8 @@ export class DomesticService {
     const config = this.client.getConfig();
 
     const rawResult = await invokeSoapMethod(soapClient, 'generateProtocolV2', {
-      dpdServicesParamsV1: { waybills },
       authDataV1: config.auth,
+      dpdServicesParamsV1: { waybills },
     });
 
     const parseResult = ProtocolSoapResponseSchema.safeParse(rawResult);
@@ -215,8 +215,8 @@ export class DomesticService {
       soapClient,
       'packagesPickupCallV4',
       {
-        ...params,
         authDataV1: config.auth,
+        ...params,
       }
     );
 
