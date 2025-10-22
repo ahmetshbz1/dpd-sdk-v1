@@ -9,8 +9,15 @@ import type {
   CourierPickupResponse,
 } from '../types/index.js';
 import { DomesticPackageSchema } from '../types/package.js';
+import {
+  PackageGenerationSoapResponseSchema,
+  LabelGenerationSoapResponseSchema,
+  ProtocolSoapResponseSchema,
+  CourierPickupSoapResponseSchema,
+} from '../types/soap-responses.js';
 import { validateInput } from '../utils/validation.js';
 import { invokeSoapMethod } from '../utils/soap-client.js';
+import { DPDServiceError } from '../types/errors.js';
 
 export class DomesticService {
   constructor(private readonly client: DPDClient) {}
@@ -25,19 +32,16 @@ export class DomesticService {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
-    const result = await invokeSoapMethod<{
-      packages?: Array<{
-        packageId?: string;
-        parcels?: Array<{ parcelId?: string }>;
-        waybill?: string;
-        status?: string;
-      }>;
-    }>(
+    const rawResult = await invokeSoapMethod(
       soapClient,
       'generatePackagesNumbersV9',
       {
         openUMLFeV11: this.buildOpenUMLPayload(
-          validatedPackages as Array<Omit<DomesticPackage, 'payerType'> & { payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY' }>
+          validatedPackages as Array<
+            Omit<DomesticPackage, 'payerType'> & {
+              payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
+            }
+          >
         ),
         pkgNumsGenerationPolicyV1: 'STOP_ON_FIRST_ERROR',
         langCode: 'PL',
@@ -45,7 +49,18 @@ export class DomesticService {
       }
     );
 
-    return this.parsePackageGenerationResponse(result);
+    // Runtime validation with Zod
+    const parseResult =
+      PackageGenerationSoapResponseSchema.safeParse(rawResult);
+    if (!parseResult.success) {
+      throw new DPDServiceError(
+        'Invalid SOAP response format',
+        'INVALID_RESPONSE',
+        parseResult.error
+      );
+    }
+
+    return this.parsePackageGenerationResponse(parseResult.data);
   }
 
   async generateLabels(
@@ -59,7 +74,7 @@ export class DomesticService {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
-    const result = await invokeSoapMethod<{ documentData?: string }>(
+    const rawResult = await invokeSoapMethod(
       soapClient,
       'generateSpedLabelsV4',
       {
@@ -72,28 +87,43 @@ export class DomesticService {
       }
     );
 
-    return this.parseLabelResponse(result, options.format, options.pageFormat);
+    const parseResult = LabelGenerationSoapResponseSchema.safeParse(rawResult);
+    if (!parseResult.success) {
+      throw new DPDServiceError(
+        'Invalid label response format',
+        'INVALID_RESPONSE',
+        parseResult.error
+      );
+    }
+
+    return this.parseLabelResponse(
+      parseResult.data,
+      options.format,
+      options.pageFormat
+    );
   }
 
   async generateProtocol(waybills: string[]): Promise<ProtocolResponse> {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
-    const result = await invokeSoapMethod<{
-      documentData?: string;
-      sessionId?: string;
-    }>(
-      soapClient,
-      'generateProtocolV2',
-      {
-        dpdServicesParamsV1: { waybills },
-        authDataV1: config.auth,
-      }
-    );
+    const rawResult = await invokeSoapMethod(soapClient, 'generateProtocolV2', {
+      dpdServicesParamsV1: { waybills },
+      authDataV1: config.auth,
+    });
+
+    const parseResult = ProtocolSoapResponseSchema.safeParse(rawResult);
+    if (!parseResult.success) {
+      throw new DPDServiceError(
+        'Invalid protocol response format',
+        'INVALID_RESPONSE',
+        parseResult.error
+      );
+    }
 
     return {
-      protocolData: result.documentData || '',
-      sessionId: result.sessionId,
+      protocolData: parseResult.data.documentData,
+      sessionId: parseResult.data.sessionId,
     };
   }
 
@@ -106,10 +136,7 @@ export class DomesticService {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
-    const result = await invokeSoapMethod<{
-      pickupCallId?: string;
-      status?: string;
-    }>(
+    const rawResult = await invokeSoapMethod(
       soapClient,
       'packagesPickupCallV4',
       {
@@ -118,14 +145,29 @@ export class DomesticService {
       }
     );
 
+    const parseResult = CourierPickupSoapResponseSchema.safeParse(rawResult);
+    if (!parseResult.success) {
+      throw new DPDServiceError(
+        'Invalid pickup response format',
+        'INVALID_RESPONSE',
+        parseResult.error
+      );
+    }
+
     return {
-      pickupId: result.pickupCallId || '',
-      status: result.status || 'OK',
+      pickupId: parseResult.data.pickupCallId,
+      status: parseResult.data.status,
       pickupDate: params.pickupDate,
     };
   }
 
-  private buildOpenUMLPayload(packages: Array<Omit<DomesticPackage, 'payerType'> & { payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY' }>): unknown {
+  private buildOpenUMLPayload(
+    packages: Array<
+      Omit<DomesticPackage, 'payerType'> & {
+        payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
+      }
+    >
+  ): unknown {
     return {
       packages: packages.map(pkg => ({
         sender: pkg.sender,
@@ -143,30 +185,30 @@ export class DomesticService {
 
   private parsePackageGenerationResponse(result: {
     packages?: Array<{
-      packageId?: string;
-      parcels?: Array<{ parcelId?: string }>;
-      waybill?: string;
+      packageId: string;
+      parcels: Array<{ parcelId: string }>;
+      waybill: string;
       status?: string;
     }>;
   }): PackageGenerationResponse {
     return {
-      packages: result.packages?.map(pkg => ({
-        packageId: pkg.packageId || '',
-        parcelIds: pkg.parcels?.map(p => p.parcelId || '') || [],
-        waybill: pkg.waybill || '',
+      packages: (result.packages || []).map(pkg => ({
+        packageId: pkg.packageId,
+        parcelIds: pkg.parcels.map(p => p.parcelId),
+        waybill: pkg.waybill,
         status: pkg.status ? { status: pkg.status } : undefined,
         sessionId: undefined,
-      })) || [],
+      })),
     };
   }
 
   private parseLabelResponse(
-    result: { documentData?: string },
+    result: { documentData: string },
     format?: LabelFormat,
     pageFormat?: PageFormat
   ): LabelResponse {
     return {
-      labelData: result.documentData || '',
+      labelData: result.documentData,
       format: format || 'PDF',
       pageFormat: pageFormat || 'A4',
     };

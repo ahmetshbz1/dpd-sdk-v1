@@ -19,11 +19,15 @@ export type DPDConfig = z.infer<typeof DPDConfigSchema>;
 
 export const ENDPOINTS = {
   production: {
-    objServices: 'https://dpdservices.dpd.com.pl/DPDPackageObjServicesService/DPDPackageObjServices?WSDL',
-    xmlServices: 'https://dpdservices.dpd.com.pl/DPDPackageXmlServicesService/DPDPackageXmlServices?WSDL',
+    objServices:
+      'https://dpdservices.dpd.com.pl/DPDPackageObjServicesService/DPDPackageObjServices?WSDL',
+    xmlServices:
+      'https://dpdservices.dpd.com.pl/DPDPackageXmlServicesService/DPDPackageXmlServices?WSDL',
   },
   demo: {
-    objServices: 'https://dpdservicesdemo.dpd.com.pl/DPDPackageObjServicesService/DPDPackageObjServices?WSDL',
-    xmlServices: 'https://dpdservicesdemo.dpd.com.pl/DPDPackageXmlServicesService/DPDPackageXmlServices?WSDL',
+    objServices:
+      'https://dpdservicesdemo.dpd.com.pl/DPDPackageObjServicesService/DPDPackageObjServices?WSDL',
+    xmlServices:
+      'https://dpdservicesdemo.dpd.com.pl/DPDPackageXmlServicesService/DPDPackageXmlServices?WSDL',
   },
 } as const;

@@ -9,6 +9,9 @@ Enterprise-grade TypeScript SDK for DPD Poland API integration with full type sa
 - SOAP service integration with automatic retry logic
 - Support for domestic and international shipments
 - Return label generation
+- Parcel tracking and status queries
+- PUDO/ParcelShop finder (pickup points)
+- Extended services (COD, Insurance, Guarantee, DPD Pickup)
 - Comprehensive error handling
 - Zero-config bundling with tsup
 - Tree-shakeable exports
@@ -192,6 +195,62 @@ const label = await client.returns.generateDomesticReturnLabel(
 #### generateInternationalReturnLabel(waybills, receiver, options?)
 
 Generate international return label.
+
+### Tracking Service
+
+Access via `client.tracking`
+
+#### getParcelStatus(waybill)
+
+Get parcel tracking information.
+
+```typescript
+const status = await client.tracking.getParcelStatus('1000635967411U');
+console.log(status.status); // Current status
+console.log(status.events); // Tracking events
+```
+
+#### getPostcodeInfo(postcode, countryCode?)
+
+Get postcode information and depot.
+
+```typescript
+const info = await client.tracking.getPostcodeInfo('02-274', 'PL');
+console.log(info.city); // Warszawa
+```
+
+### PUDO Service
+
+Access via `client.pudo`
+
+#### findParcelShops(params)
+
+Find nearby pickup points.
+
+```typescript
+const shops = await client.pudo.findParcelShops({
+  city: 'Warszawa',
+  postalCode: '02-274',
+  countryCode: 'PL',
+  limit: 10,
+  hideClosed: true,
+});
+
+shops.forEach(shop => {
+  console.log(shop.name, shop.pudoId);
+});
+```
+
+#### getParcelShop(pudoId)
+
+Get specific pickup point details.
+
+```typescript
+const shop = await client.pudo.getParcelShop('PL14187');
+if (shop) {
+  console.log(shop.address, shop.openingHours);
+}
+```
 
 ## Error Handling
 

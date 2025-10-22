@@ -42,12 +42,14 @@ export async function invokeSoapMethod<T>(
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const method = client[methodName];
       if (typeof method !== 'function') {
         throw new DPDServiceError(`SOAP method not found: ${methodName}`);
       }
 
       const result = await new Promise<T>((resolve, reject) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         method.call(client, args, (err: Error | null, res: T) => {
           if (err) {
             reject(err);
@@ -60,7 +62,7 @@ export async function invokeSoapMethod<T>(
       return result;
     } catch (error) {
       lastError = error;
-      
+
       if (attempt < opts.maxRetries) {
         await sleep(opts.retryDelay * (attempt + 1));
         continue;

@@ -8,6 +8,12 @@ import type {
 import { AddressSchema } from '../types/address.js';
 import { validateInput } from '../utils/validation.js';
 import { invokeSoapMethod } from '../utils/soap-client.js';
+import { z } from 'zod';
+
+// SOAP response validation schema
+const LabelResponseSchema = z.object({
+  documentData: z.string(),
+});
 
 export class ReturnService {
   constructor(private readonly client: DPDClient) {}
@@ -25,7 +31,7 @@ export class ReturnService {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
-    const result = await invokeSoapMethod<{ documentData?: string }>(
+    const result = await invokeSoapMethod<unknown>(
       soapClient,
       'generateDomesticReturnLabelV1',
       {
@@ -55,7 +61,7 @@ export class ReturnService {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
-    const result = await invokeSoapMethod<{ documentData?: string }>(
+    const result = await invokeSoapMethod<unknown>(
       soapClient,
       'generateReturnLabelV1',
       {
@@ -73,12 +79,20 @@ export class ReturnService {
   }
 
   private parseLabelResponse(
-    result: { documentData?: string },
+    result: unknown,
     format?: LabelFormat,
     pageFormat?: PageFormat
   ): LabelResponse {
+    const parsed = LabelResponseSchema.safeParse(result);
+
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid return label response format: ${parsed.error.message}`
+      );
+    }
+
     return {
-      labelData: result.documentData || '',
+      labelData: parsed.data.documentData,
       format: format || 'PDF',
       pageFormat: pageFormat || 'A4',
     };

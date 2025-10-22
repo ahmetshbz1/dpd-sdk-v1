@@ -19,13 +19,19 @@ export type GeneratedPackage = z.infer<typeof GeneratedPackageSchema>;
 
 export const PackageGenerationResponseSchema = z.object({
   packages: z.array(GeneratedPackageSchema),
-  errors: z.array(z.object({
-    code: z.string(),
-    message: z.string(),
-  })).optional(),
+  errors: z
+    .array(
+      z.object({
+        code: z.string(),
+        message: z.string(),
+      })
+    )
+    .optional(),
 });
 
-export type PackageGenerationResponse = z.infer<typeof PackageGenerationResponseSchema>;
+export type PackageGenerationResponse = z.infer<
+  typeof PackageGenerationResponseSchema
+>;
 
 export const LabelFormatSchema = z.enum(['PDF', 'ZPL', 'EPL']);
 export type LabelFormat = z.infer<typeof LabelFormatSchema>;

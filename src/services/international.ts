@@ -6,6 +6,23 @@ import type {
 import { InternationalPackageSchema } from '../types/package.js';
 import { validateInput } from '../utils/validation.js';
 import { invokeSoapMethod } from '../utils/soap-client.js';
+import { z } from 'zod';
+
+// SOAP response validation schema
+const ParcelResponseSchema = z.object({
+  parcelId: z.string(),
+});
+
+const PackageResponseSchema = z.object({
+  packageId: z.string(),
+  parcels: z.array(ParcelResponseSchema),
+  waybill: z.string(),
+  status: z.string().optional(),
+});
+
+const InternationalGenerationResponseSchema = z.object({
+  packages: z.array(PackageResponseSchema),
+});
 
 export class InternationalService {
   constructor(private readonly client: DPDClient) {}
@@ -20,19 +37,16 @@ export class InternationalService {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
-    const result = await invokeSoapMethod<{
-      packages?: Array<{
-        packageId?: string;
-        parcels?: Array<{ parcelId?: string }>;
-        waybill?: string;
-        status?: string;
-      }>;
-    }>(
+    const result = await invokeSoapMethod<unknown>(
       soapClient,
       'generateInternationalPackageNumbersV1',
       {
         internationalOpenUMLFeV1: this.buildInternationalPayload(
-          validatedPackages as Array<Omit<InternationalPackage, 'payerType'> & { payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY' }>
+          validatedPackages as Array<
+            Omit<InternationalPackage, 'payerType'> & {
+              payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
+            }
+          >
         ),
         authDataV1: config.auth,
       }
@@ -41,7 +55,13 @@ export class InternationalService {
     return this.parsePackageGenerationResponse(result);
   }
 
-  private buildInternationalPayload(packages: Array<Omit<InternationalPackage, 'payerType'> & { payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY' }>): unknown {
+  private buildInternationalPayload(
+    packages: Array<
+      Omit<InternationalPackage, 'payerType'> & {
+        payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
+      }
+    >
+  ): unknown {
     return {
       packages: packages.map(pkg => ({
         sender: pkg.sender,
@@ -66,22 +86,25 @@ export class InternationalService {
     };
   }
 
-  private parsePackageGenerationResponse(result: {
-    packages?: Array<{
-      packageId?: string;
-      parcels?: Array<{ parcelId?: string }>;
-      waybill?: string;
-      status?: string;
-    }>;
-  }): PackageGenerationResponse {
+  private parsePackageGenerationResponse(
+    result: unknown
+  ): PackageGenerationResponse {
+    const parsed = InternationalGenerationResponseSchema.safeParse(result);
+
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid international generation response format: ${parsed.error.message}`
+      );
+    }
+
     return {
-      packages: result.packages?.map(pkg => ({
-        packageId: pkg.packageId || '',
-        parcelIds: pkg.parcels?.map(p => p.parcelId || '') || [],
-        waybill: pkg.waybill || '',
+      packages: parsed.data.packages.map(pkg => ({
+        packageId: pkg.packageId,
+        parcelIds: pkg.parcels.map(p => p.parcelId),
+        waybill: pkg.waybill,
         status: pkg.status ? { status: pkg.status } : undefined,
         sessionId: undefined,
-      })) || [],
+      })),
     };
   }
 }

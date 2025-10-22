@@ -1,12 +1,9 @@
 import type { ZodSchema } from 'zod';
 import { DPDValidationError } from '../types/errors.js';
 
-export function validateInput<T>(
-  schema: ZodSchema<T>,
-  data: unknown
-): T {
+export function validateInput<T>(schema: ZodSchema<T>, data: unknown): T {
   const result = schema.safeParse(data);
-  
+
   if (!result.success) {
     throw new DPDValidationError(
       'Input validation failed',
@@ -14,7 +11,6 @@ export function validateInput<T>(
       'VALIDATION_ERROR'
     );
   }
-  
+
   return result.data;
 }
-
