@@ -1,4 +1,5 @@
 import { DPDClient } from '@ematu/dpd-sdk';
+import { count } from 'console';
 
 /**
  * Basic Usage Example
@@ -60,7 +61,7 @@ async function main() {
   // 5. Label generate et
   const label = await client.domestic.generateLabels(
     [result.packages[0].waybill],
-    { format: 'PDF', pageFormat: 'A4' }
+    { format: 'PDF', pageFormat: 'A6' }
   );
   console.log('Label generated:', label.labelData.substring(0, 50));
 

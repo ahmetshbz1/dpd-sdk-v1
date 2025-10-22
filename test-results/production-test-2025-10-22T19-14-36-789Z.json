@@ -1,0 +1,133 @@
+{
+  "testStartTime": "2025-10-22T19:14:17.218Z",
+  "testEndTime": "2025-10-22T19:14:36.789Z",
+  "totalDuration": 19571,
+  "environment": "demo",
+  "results": [
+    {
+      "testName": "Domestic: Generate Package Numbers",
+      "success": false,
+      "duration": 78,
+      "error": "DPD API Error: UNSPECIFIED_ERROR",
+      "timestamp": "2025-10-22T19:14:17.762Z"
+    },
+    {
+      "testName": "Domestic: Generate Labels",
+      "success": false,
+      "duration": 68,
+      "error": "DPD API Error: UNSPECIFIED_ERROR",
+      "timestamp": "2025-10-22T19:14:17.841Z"
+    },
+    {
+      "testName": "Domestic: Generate Protocol",
+      "success": false,
+      "duration": 0,
+      "error": "Input validation failed",
+      "timestamp": "2025-10-22T19:14:17.909Z"
+    },
+    {
+      "testName": "Domestic: Pickup Call",
+      "success": false,
+      "duration": 6268,
+      "error": "SOAP method failed after 3 retries: packagesPickupCallV4",
+      "timestamp": "2025-10-22T19:14:17.910Z"
+    },
+    {
+      "testName": "International: Generate Package Numbers",
+      "success": false,
+      "duration": 1,
+      "error": "Input validation failed",
+      "timestamp": "2025-10-22T19:14:24.179Z"
+    },
+    {
+      "testName": "Tracking: Get Parcel Status",
+      "success": false,
+      "duration": 0,
+      "error": "Input validation failed",
+      "timestamp": "2025-10-22T19:14:24.180Z"
+    },
+    {
+      "testName": "Tracking: Get Postcode Info",
+      "success": false,
+      "duration": 6002,
+      "error": "SOAP method failed after 3 retries: getPostcodeInfo",
+      "timestamp": "2025-10-22T19:14:24.180Z"
+    },
+    {
+      "testName": "PUDO: Find Parcel Shops",
+      "success": false,
+      "duration": 14,
+      "error": "fetch failed",
+      "timestamp": "2025-10-22T19:14:30.188Z"
+    },
+    {
+      "testName": "PUDO: Get Specific Parcel Shop",
+      "success": false,
+      "duration": 1,
+      "error": "fetch failed",
+      "timestamp": "2025-10-22T19:14:30.202Z"
+    },
+    {
+      "testName": "Return: Generate Domestic Return Label",
+      "success": false,
+      "duration": 65,
+      "error": "DPD API Error: UNSPECIFIED_ERROR",
+      "timestamp": "2025-10-22T19:14:30.204Z"
+    },
+    {
+      "testName": "Return: Generate International Return Label",
+      "success": false,
+      "duration": 0,
+      "error": "Input validation failed",
+      "timestamp": "2025-10-22T19:14:30.269Z"
+    },
+    {
+      "testName": "High-Level SDK: Create Label",
+      "success": false,
+      "duration": 67,
+      "error": "DPD API Error: UNSPECIFIED_ERROR",
+      "timestamp": "2025-10-22T19:14:30.269Z"
+    },
+    {
+      "testName": "High-Level SDK: Get Tracking",
+      "success": false,
+      "duration": 1,
+      "error": "Input validation failed",
+      "timestamp": "2025-10-22T19:14:30.336Z"
+    },
+    {
+      "testName": "High-Level SDK: Create Pickup",
+      "success": false,
+      "duration": 6263,
+      "error": "SOAP method failed after 3 retries: packagesPickupCallV4",
+      "timestamp": "2025-10-22T19:14:30.337Z"
+    },
+    {
+      "testName": "High-Level SDK: Batch Operations",
+      "success": true,
+      "duration": 188,
+      "data": {
+        "labelsCreated": 0,
+        "errorsCount": 2,
+        "waybills": [],
+        "errors": [
+          {
+            "index": 0,
+            "error": "DPD API Error: UNSPECIFIED_ERROR"
+          },
+          {
+            "index": 1,
+            "error": "DPD API Error: UNSPECIFIED_ERROR"
+          }
+        ]
+      },
+      "timestamp": "2025-10-22T19:14:36.601Z"
+    }
+  ],
+  "summary": {
+    "total": 15,
+    "passed": 1,
+    "failed": 14,
+    "successRate": 6.666666666666667
+  }
+}

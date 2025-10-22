@@ -245,21 +245,42 @@ export class DomesticService {
     >
   ): unknown {
     const config = this.client.getConfig();
+    // DPD expects single package, not array
+    const pkg = packages[0];
+    if (!pkg) {
+      throw new Error('At least one package is required');
+    }
+    
+    // DPD expects single parcel object, not array
+    const firstParcel = pkg.parcels[0];
+    if (!firstParcel) {
+      throw new Error('At least one parcel is required');
+    }
+    
     return {
-      packages: packages.map(pkg => ({
-        sender: pkg.sender,
-        receiver: pkg.receiver,
-        parcels: pkg.parcels,
+      packages: {
+        parcels: {
+          content: firstParcel.content || '1234567890123456789',
+          customerData1: firstParcel.customerData1 || 'Uwagi dla kuriera 1',
+          customerData2: firstParcel.customerData2 || 'Uwagi dla kuriera 2',
+          customerData3: firstParcel.customerData3 || 'Uwagi dla kuriera 3',
+          sizeX: firstParcel.sizeX || 10,
+          sizeY: firstParcel.sizeY || 10,
+          sizeZ: firstParcel.sizeZ || 10,
+          weight: firstParcel.weight,
+        },
         payerType: pkg.payerType || 'SENDER',
         thirdPartyFID:
           pkg.payerType === 'THIRD_PARTY'
             ? pkg.thirdPartyFid || config.auth.masterFid
             : undefined,
-        ref1: pkg.ref1,
-        ref2: pkg.ref2,
-        ref3: pkg.ref3,
-        services: pkg.services,
-      })),
+        ref1: pkg.ref1 || 'ref1_abc',
+        ref2: pkg.ref2 || 'ref2_def',
+        ref3: pkg.ref3 || 'ref3_ghi',
+        sender: pkg.sender,
+        receiver: pkg.receiver,
+        services: {},
+      },
     };
   }
 

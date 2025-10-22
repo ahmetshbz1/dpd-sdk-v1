@@ -48,12 +48,20 @@ export async function invokeSoapMethod<T>(
         throw new DPDServiceError(`SOAP method not found: ${methodName}`);
       }
 
+      // Debug: Log SOAP request
+      console.log(`\n🔵 SOAP Request: ${methodName}`);
+      console.log(JSON.stringify(args, null, 2));
+
       const result = await new Promise<T>((resolve, reject) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         method.call(client, args, (err: Error | null, res: T) => {
           if (err) {
+            console.log(`\n🔴 SOAP Error: ${methodName}`);
+            console.log(err);
             reject(err);
           } else {
+            console.log(`\n🟢 SOAP Response: ${methodName}`);
+            console.log(JSON.stringify(res, null, 2));
             resolve(res);
           }
         });

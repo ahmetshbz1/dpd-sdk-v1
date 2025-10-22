@@ -69,13 +69,29 @@ const CreateLabelRequestSchema: z.ZodType<CreateLabelRequest> = z.object({
 
 export class DPDSDK {
   private readonly client: DPDClient;
+  private initialized: boolean = false;
 
   constructor(config: DPDConfig) {
     this.client = new DPDClient(config);
   }
 
+  /**
+   * Initialize the SDK client
+   * Must be called before using any SDK methods
+   */
+  async initialize(): Promise<void> {
+    if (!this.initialized) {
+      await this.client.initialize();
+      this.initialized = true;
+    }
+  }
+
   // Labels: 2-step flow (generatePackagesNumbersV9 -> generateSpedLabelsV4)
   async createLabel(req: CreateLabelRequest): Promise<LabelResult> {
+    if (!this.initialized) {
+      throw new Error('DPD SDK not initialized. Call initialize() method first.');
+    }
+    
     const r = CreateLabelRequestSchema.parse(req);
 
     // Build domestic package
@@ -119,6 +135,10 @@ export class DPDSDK {
     labels: LabelResult[];
     errors: { index: number; error: string }[];
   }> {
+    if (!this.initialized) {
+      throw new Error('DPD SDK not initialized. Call initialize() method first.');
+    }
+    
     const labels: LabelResult[] = [];
     const errors: { index: number; error: string }[] = [];
 
@@ -143,6 +163,10 @@ export class DPDSDK {
     lastUpdate?: string;
     events?: { date: string; description: string; location?: string }[];
   }> {
+    if (!this.initialized) {
+      throw new Error('DPD SDK not initialized. Call initialize() method first.');
+    }
+    
     const st = await this.client.tracking.getParcelStatus(waybill);
     return {
       waybill: st.waybill,
@@ -155,6 +179,10 @@ export class DPDSDK {
   async getBatchTracking(
     waybills: string[]
   ): Promise<{ waybill: string; status: string; lastUpdate?: string }[]> {
+    if (!this.initialized) {
+      throw new Error('DPD SDK not initialized. Call initialize() method first.');
+    }
+    
     const results: { waybill: string; status: string; lastUpdate?: string }[] =
       [];
     for (const w of waybills) {
@@ -175,6 +203,10 @@ export class DPDSDK {
   async getEvents(
     waybill: string
   ): Promise<{ date: string; description: string; location?: string }[]> {
+    if (!this.initialized) {
+      throw new Error('DPD SDK not initialized. Call initialize() method first.');
+    }
+    
     const st = await this.client.tracking.getParcelStatus(waybill);
     return st.events || [];
   }
@@ -186,6 +218,10 @@ export class DPDSDK {
     pickupTimeTo: string;
     waybills?: string[];
   }): Promise<{ pickupId: string; status: string; pickupDate: string }> {
+    if (!this.initialized) {
+      throw new Error('DPD SDK not initialized. Call initialize() method first.');
+    }
+    
     const res = await this.client.domestic.pickupCall(params);
     return res;
   }
