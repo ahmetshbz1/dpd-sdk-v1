@@ -138,12 +138,44 @@ export class DPDSDK {
     return { labels, errors };
   }
 
-  // Tracking (simple wrapper)
+  // Tracking
   async getTracking(
     waybill: string
-  ): Promise<{ waybill: string; status: string }> {
+  ): Promise<{
+    waybill: string;
+    status: string;
+    lastUpdate?: string;
+    events?: { date: string; description: string; location?: string }[];
+  }> {
     const st = await this.client.tracking.getParcelStatus(waybill);
-    return { waybill: st.waybill, status: st.status };
+    return {
+      waybill: st.waybill,
+      status: st.status,
+      lastUpdate: st.lastUpdate,
+      events: st.events,
+    };
+  }
+
+  async getBatchTracking(
+    waybills: string[]
+  ): Promise<{ waybill: string; status: string; lastUpdate?: string }[]> {
+    const results: { waybill: string; status: string; lastUpdate?: string }[] = [];
+    for (const w of waybills) {
+      try {
+        const t = await this.client.tracking.getParcelStatus(w);
+        results.push({ waybill: t.waybill, status: t.status, lastUpdate: t.lastUpdate });
+      } catch {
+        results.push({ waybill: w, status: 'UNKNOWN' });
+      }
+    }
+    return results;
+  }
+
+  async getEvents(
+    waybill: string
+  ): Promise<{ date: string; description: string; location?: string }[]> {
+    const st = await this.client.tracking.getParcelStatus(waybill);
+    return st.events || [];
   }
 
   // Pickups (simple wrapper)
