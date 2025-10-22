@@ -46,6 +46,8 @@ describe('DPD SDK - Production Basic Test', () => {
             city: 'Krakow',
             postalCode: '30-001',
             countryCode: 'PL',
+            phone: '+48123456789',
+            email: 'sender@test.pl',
           },
           receiver: {
             name: 'Test Receiver',
@@ -53,6 +55,8 @@ describe('DPD SDK - Production Basic Test', () => {
             city: 'Warszawa',
             postalCode: '00-001',
             countryCode: 'PL',
+            phone: '+48987654321',
+            email: 'receiver@test.pl',
           },
           parcels: [
             {

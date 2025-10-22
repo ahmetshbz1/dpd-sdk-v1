@@ -55,7 +55,7 @@ export class DomesticService {
 
     const payload = {
       authDataV1: config.auth,
-      openUMLFeV3: this.buildOpenUMLPayload(
+      openUMLFeV11: this.buildOpenUMLPayload(
         validatedPackages as Array<
           Omit<DomesticPackage, 'payerType'> & {
             payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
@@ -68,7 +68,7 @@ export class DomesticService {
 
     const rawResult = await invokeSoapMethod(
       soapClient,
-      'generatePackagesNumbersV4',
+      'generatePackagesNumbersV9',
       payload
     );
 
