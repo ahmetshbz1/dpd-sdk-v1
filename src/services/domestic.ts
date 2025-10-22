@@ -18,6 +18,7 @@ import {
 import { validateInput } from '../utils/validation.js';
 import { invokeSoapMethod } from '../utils/soap-client.js';
 import { DPDServiceError } from '../types/errors.js';
+import axios from 'axios';
 
 /**
  * Domestic shipping service for Poland
@@ -50,27 +51,30 @@ export class DomesticService {
       validateInput(DomesticPackageSchema, pkg)
     );
 
-    const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
-    const payload = {
-      authDataV1: config.auth,
-      openUMLFeV11: this.buildOpenUMLPayload(
-        validatedPackages as Array<
-          Omit<DomesticPackage, 'payerType'> & {
-            payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
-          }
-        >
-      ),
-      pkgNumsGenerationPolicyV1: 'STOP_ON_FIRST_ERROR',
-      langCode: 'PL',
-    };
+    // DPD expects single package, not array
+    const pkg = validatedPackages[0];
+    if (!pkg) {
+      throw new Error('At least one package is required');
+    }
+    
+    const firstParcel = pkg.parcels[0];
+    if (!firstParcel) {
+      throw new Error('At least one parcel is required');
+    }
 
-    const rawResult = await invokeSoapMethod(
-      soapClient,
-      'generatePackagesNumbersV9',
-      payload
+    // Raw XML testinde başarılı olan tam SOAP envelope
+    const fullSoapXML = this.buildFullSoapXML(
+      pkg as Omit<DomesticPackage, 'payerType'> & {
+        payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
+      },
+      firstParcel,
+      config
     );
+
+    // Direkt HTTP isteği gönder (SOAP client kullanma)
+    const rawResult = await this.sendDirectHTTPRequest(fullSoapXML);
 
     // Check for API-level errors
     if (rawResult && typeof rawResult === 'object' && 'return' in rawResult) {
@@ -237,51 +241,130 @@ export class DomesticService {
     };
   }
 
-  private buildOpenUMLPayload(
-    packages: Array<
-      Omit<DomesticPackage, 'payerType'> & {
-        payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
-      }
-    >
-  ): unknown {
+  private async sendDirectHTTPRequest(soapXML: string): Promise<any> {
     const config = this.client.getConfig();
-    // DPD expects single package, not array
-    const pkg = packages[0];
-    if (!pkg) {
-      throw new Error('At least one package is required');
+    const endpoint = config.environment === 'demo' 
+      ? 'https://dpdservicesdemo.dpd.com.pl/DPDPackageObjServicesService/DPDPackageObjServices'
+      : 'https://dpdservices.dpd.com.pl/DPDPackageObjServicesService/DPDPackageObjServices';
+
+    try {
+      const response = await axios.post(endpoint, soapXML, {
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': ''
+        }
+      });
+      
+      // Parse SOAP response
+      return this.parseSOAPResponse(response.data);
+    } catch (error: any) {
+      if (error.response) {
+        throw new DPDServiceError(
+          `DPD API Error: ${error.response.data}`,
+          'API_ERROR',
+          error.response.data
+        );
+      }
+      throw new DPDServiceError(
+        `Network Error: ${error.message}`,
+        'NETWORK_ERROR',
+        error
+      );
     }
-    
-    // DPD expects single parcel object, not array
-    const firstParcel = pkg.parcels[0];
-    if (!firstParcel) {
-      throw new Error('At least one parcel is required');
+  }
+
+  private parseSOAPResponse(xmlResponse: string): any {
+    // Basit SOAP response parser
+    const match = xmlResponse.match(/<return>(.*?)<\/return>/s);
+    if (match) {
+      const returnContent = match[1];
+      // Burada daha detaylı XML parsing yapılabilir
+      return { return: returnContent };
     }
+    return { return: xmlResponse };
+  }
+
+  private buildFullSoapXML(
+    pkg: Omit<DomesticPackage, 'payerType'> & {
+      payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
+    },
+    parcel: any,
+    config: any
+  ): string {
+    // Raw XML testinde başarılı olan tam SOAP envelope
+    const xmlContent = this.buildRawXML(pkg, parcel);
     
-    return {
-      packages: {
-        parcels: {
-          content: firstParcel.content || '1234567890123456789',
-          customerData1: firstParcel.customerData1 || 'Uwagi dla kuriera 1',
-          customerData2: firstParcel.customerData2 || 'Uwagi dla kuriera 2',
-          customerData3: firstParcel.customerData3 || 'Uwagi dla kuriera 3',
-          sizeX: firstParcel.sizeX || 10,
-          sizeY: firstParcel.sizeY || 10,
-          sizeZ: firstParcel.sizeZ || 10,
-          weight: firstParcel.weight,
-        },
-        payerType: pkg.payerType || 'SENDER',
-        thirdPartyFID:
-          pkg.payerType === 'THIRD_PARTY'
-            ? pkg.thirdPartyFid || config.auth.masterFid
-            : undefined,
-        ref1: pkg.ref1 || 'ref1_abc',
-        ref2: pkg.ref2 || 'ref2_def',
-        ref3: pkg.ref3 || 'ref3_ghi',
-        sender: pkg.sender,
-        receiver: pkg.receiver,
-        services: {},
-      },
-    };
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:dpd="http://dpdservices.dpd.com.pl/">
+<soapenv:Header/>
+<soapenv:Body>
+<dpd:generatePackagesNumbersV9>
+<openUMLFeV11>
+${xmlContent}
+</openUMLFeV11>
+<pkgNumsGenerationPolicyV1>STOP_ON_FIRST_ERROR</pkgNumsGenerationPolicyV1>
+<langCode>PL</langCode>
+<authDataV1>
+<login>${config.auth.login}</login>
+<masterFid>${config.auth.masterFid}</masterFid>
+<password>${config.auth.password}</password>
+</authDataV1>
+</dpd:generatePackagesNumbersV9>
+</soapenv:Body>
+</soapenv:Envelope>`;
+  }
+
+  private buildRawXML(
+    pkg: Omit<DomesticPackage, 'payerType'> & {
+      payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
+    },
+    parcel: any
+  ): string {
+    const payerType = pkg.payerType || 'SENDER';
+    const thirdPartyFID = payerType === 'THIRD_PARTY' 
+      ? (pkg.thirdPartyFid || '431305')
+      : undefined;
+
+    // Raw XML testinde başarılı olan format (XML declaration olmadan)
+    return `<packages>
+<parcels>
+<content>${parcel.content || '1234567890123456789'}</content>
+<customerData1>${parcel.customerData1 || 'Uwagi dla kuriera 1'}</customerData1>
+<customerData2>${parcel.customerData2 || 'Uwagi dla kuriera 2'}</customerData2>
+<customerData3>${parcel.customerData3 || 'Uwagi dla kuriera 3'}</customerData3>
+<sizeX>${parcel.sizeX || 10}</sizeX>
+<sizeY>${parcel.sizeY || 10}</sizeY>
+<sizeZ>${parcel.sizeZ || 10}</sizeZ>
+<weight>${parcel.weight}</weight>
+</parcels>
+<payerType>${payerType}</payerType>
+${thirdPartyFID ? `<thirdPartyFID>${thirdPartyFID}</thirdPartyFID>` : ''}
+<ref1>${pkg.ref1 || 'ref1_abc'}</ref1>
+<ref2>${pkg.ref2 || 'ref2_def'}</ref2>
+<ref3>${pkg.ref3 || 'ref3_ghi'}</ref3>
+<sender>
+<company>${pkg.sender.company || ''}</company>
+<name>${pkg.sender.name}</name>
+<address>${pkg.sender.address}</address>
+<city>${pkg.sender.city}</city>
+<postalCode>${pkg.sender.postalCode}</postalCode>
+<countryCode>${pkg.sender.countryCode}</countryCode>
+<email>${pkg.sender.email || ''}</email>
+<phone>${pkg.sender.phone || ''}</phone>
+</sender>
+<receiver>
+<company>${pkg.receiver.company || ''}</company>
+<name>${pkg.receiver.name}</name>
+<address>${pkg.receiver.address}</address>
+<city>${pkg.receiver.city}</city>
+<postalCode>${pkg.receiver.postalCode}</postalCode>
+<countryCode>${pkg.receiver.countryCode}</countryCode>
+<email>${pkg.receiver.email || ''}</email>
+<phone>${pkg.receiver.phone || ''}</phone>
+</receiver>
+<services>
+</services>
+</packages>`;
   }
 
   private parsePackageGenerationResponse(result: {

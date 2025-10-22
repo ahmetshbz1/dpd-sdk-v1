@@ -49,7 +49,7 @@ describe('DPD SDK - Production Comprehensive Test', () => {
       testStartTime: startTime,
       testEndTime: '',
       totalDuration: 0,
-      environment: 'demo',
+      environment: 'production',
       results: [],
       summary: {
         total: 0,
@@ -61,26 +61,26 @@ describe('DPD SDK - Production Comprehensive Test', () => {
 
     // Client ve SDK initialize
     client = new DPDClient({
-      environment: 'demo',
+      environment: 'production',
       auth: {
-        login: 'test',
-        password: 'thetu4Ee',
-        masterFid: '1495',
+        login: '43130401',
+        password: 'c75Bz6tAqMRDKOfm',
+        masterFid: '431304',
       },
     });
 
     sdk = new DPDSDK({
-      environment: 'demo',
+      environment: 'production',
       auth: {
-        login: 'test',
-        password: 'thetu4Ee',
-        masterFid: '1495',
+        login: '43130401',
+        password: 'c75Bz6tAqMRDKOfm',
+        masterFid: '431304',
       },
     });
 
     await client.initialize();
     await sdk.initialize();
-    console.log('Demo SOAP client and SDK initialized successfully');
+    console.log('Production SOAP client and SDK initialized successfully');
   }, 30000);
 
   afterAll(async () => {

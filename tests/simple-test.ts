@@ -2,11 +2,11 @@ import { DPDClient } from '../src/client';
 
 async function testGenerate() {
   const client = new DPDClient({
-    environment: 'demo',
+    environment: 'production',
     auth: {
-      login: 'test',
-      password: 'thetu4Ee',
-      masterFid: '1495',
+      login: '43130401',
+      password: 'c75Bz6tAqMRDKOfm',
+      masterFid: '431304',
     },
   });
 

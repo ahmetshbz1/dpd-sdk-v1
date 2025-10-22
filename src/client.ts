@@ -33,6 +33,7 @@ import { PudoService } from './services/pudo.js';
  */
 export class DPDClient {
   private soapClient: SoapClient | null = null;
+  private xmlSoapClient: SoapClient | null = null;
   private config: DPDConfig;
 
   /** Domestic shipping operations */
@@ -74,8 +75,16 @@ export class DPDClient {
    * ```
    */
   async initialize(): Promise<void> {
-    const endpoint = ENDPOINTS[this.config.environment].objServices;
-    this.soapClient = await createSoapClient(endpoint, {
+    const objEndpoint = ENDPOINTS[this.config.environment].objServices;
+    const xmlEndpoint = ENDPOINTS[this.config.environment].xmlServices;
+    
+    this.soapClient = await createSoapClient(objEndpoint, {
+      timeout: this.config.timeout,
+      maxRetries: this.config.maxRetries,
+      retryDelay: 1000,
+    });
+    
+    this.xmlSoapClient = await createSoapClient(xmlEndpoint, {
       timeout: this.config.timeout,
       maxRetries: this.config.maxRetries,
       retryDelay: 1000,
@@ -93,6 +102,19 @@ export class DPDClient {
       );
     }
     return this.soapClient;
+  }
+
+  /**
+   * @internal
+   * Returns initialized XML SOAP client
+   */
+  getXmlSoapClient(): SoapClient {
+    if (!this.xmlSoapClient) {
+      throw new Error(
+        'DPD XML Client not initialized. Call initialize() method first.'
+      );
+    }
+    return this.xmlSoapClient;
   }
 
   /**
