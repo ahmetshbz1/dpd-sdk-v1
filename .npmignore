@@ -1,0 +1,33 @@
+# Source files
+src/
+tests/
+examples/
+
+# Config files
+tsconfig.json
+tsup.config.ts
+.eslintrc.json
+.prettierrc
+vitest.config.ts
+
+# Development
+node_modules/
+.vscode/
+.idea/
+*.log
+*.tsbuildinfo
+
+# CI/CD
+.github/
+.git/
+.gitignore
+
+# Documentation (keep README, CHANGELOG, LICENSE)
+warp.md
+
+# Test coverage
+coverage/
+
+# Build artifacts (except dist/)
+*.local
+.DS_Store

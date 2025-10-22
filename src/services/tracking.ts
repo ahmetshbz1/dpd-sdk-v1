@@ -49,9 +49,24 @@ const PostcodeInfoResponseSchema = z.object({
   depot: z.string().optional(),
 });
 
+/**
+ * Tracking service for parcel status and postcode lookup
+ */
 export class TrackingService {
   constructor(private readonly client: DPDClient) {}
 
+  /**
+   * Retrieves current status and event history for a parcel
+   *
+   * @param waybill - DPD waybill number
+   * @returns Parcel status with events timeline
+   * @throws {Error} When SOAP API call fails or response is invalid
+   * @example
+   * ```typescript
+   * const status = await client.tracking.getParcelStatus('1234567890');
+   * console.log(status.status, status.events);
+   * ```
+   */
   async getParcelStatus(waybill: string): Promise<ParcelStatus> {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
@@ -83,6 +98,14 @@ export class TrackingService {
     };
   }
 
+  /**
+   * Looks up city and depot information for a postcode
+   *
+   * @param postcode - Postal code to lookup
+   * @param countryCode - ISO country code (default: 'PL')
+   * @returns Postcode information with city and depot
+   * @throws {Error} When SOAP API call fails or response is invalid
+   */
   async getPostcodeInfo(
     postcode: string,
     countryCode: string = 'PL'

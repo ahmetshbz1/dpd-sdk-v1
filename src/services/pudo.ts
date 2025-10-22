@@ -51,6 +51,9 @@ export interface ParcelShopSearchParams {
   radius?: number;
 }
 
+/**
+ * PUDO (Pick Up Drop Off) service for ParcelShop locations
+ */
 export class PudoService {
   private readonly baseUrl: string;
 
@@ -62,6 +65,21 @@ export class PudoService {
         : 'https://mypudo.dpd.com.pl/api/v2';
   }
 
+  /**
+   * Searches for nearby ParcelShop locations
+   *
+   * @param params - Search parameters (address, city, postal code, coordinates)
+   * @returns Array of matching ParcelShop locations
+   * @throws {Error} When API call fails or response is invalid
+   * @example
+   * ```typescript
+   * const shops = await client.pudo.findParcelShops({
+   *   city: 'Warsaw',
+   *   countryCode: 'PL',
+   *   limit: 10
+   * });
+   * ```
+   */
   async findParcelShops(params: ParcelShopSearchParams): Promise<ParcelShop[]> {
     const config = this.client.getConfig();
 
@@ -108,6 +126,13 @@ export class PudoService {
     return this.parseParcelShops(parsed.data.parcelShops);
   }
 
+  /**
+   * Retrieves detailed information for a specific ParcelShop
+   *
+   * @param pudoId - Unique ParcelShop identifier
+   * @returns ParcelShop details or null if not found
+   * @throws {Error} When API call fails or response is invalid
+   */
   async getParcelShop(pudoId: string): Promise<ParcelShop | null> {
     const config = this.client.getConfig();
 

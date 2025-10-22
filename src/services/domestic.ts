@@ -19,9 +19,30 @@ import { validateInput } from '../utils/validation.js';
 import { invokeSoapMethod } from '../utils/soap-client.js';
 import { DPDServiceError } from '../types/errors.js';
 
+/**
+ * Domestic shipping service for Poland
+ */
 export class DomesticService {
   constructor(private readonly client: DPDClient) {}
 
+  /**
+   * Generates package numbers and waybills for domestic shipments
+   *
+   * @param packages - Array of domestic packages to process
+   * @returns Package generation response with waybills and parcel IDs
+   * @throws {DPDServiceError} When SOAP API call fails or response is invalid
+   * @example
+   * ```typescript
+   * const result = await client.domestic.generatePackageNumbers([
+   *   {
+   *     sender: { name: 'Sender', postalCode: '00-001', city: 'Warsaw' },
+   *     receiver: { name: 'Receiver', postalCode: '01-001', city: 'Krakow' },
+   *     parcels: [{ weight: 1.5, content: 'Documents' }]
+   *   }
+   * ]);
+   * console.log(result.packages[0].waybill);
+   * ```
+   */
   async generatePackageNumbers(
     packages: DomesticPackage[]
   ): Promise<PackageGenerationResponse> {
@@ -63,6 +84,22 @@ export class DomesticService {
     return this.parsePackageGenerationResponse(parseResult.data);
   }
 
+  /**
+   * Generates shipping labels for existing waybills
+   *
+   * @param waybills - Array of waybill numbers
+   * @param options - Label generation options (format, page format, variant)
+   * @returns Label response with base64-encoded document data
+   * @throws {DPDServiceError} When SOAP API call fails or response is invalid
+   * @example
+   * ```typescript
+   * const label = await client.domestic.generateLabels(
+   *   ['1234567890'],
+   *   { format: 'PDF', pageFormat: 'A4' }
+   * );
+   * // Save or display label.labelData
+   * ```
+   */
   async generateLabels(
     waybills: string[],
     options: {
@@ -103,6 +140,13 @@ export class DomesticService {
     );
   }
 
+  /**
+   * Generates collection protocol for waybills
+   *
+   * @param waybills - Array of waybill numbers
+   * @returns Protocol response with document data and session ID
+   * @throws {DPDServiceError} When SOAP API call fails or response is invalid
+   */
   async generateProtocol(waybills: string[]): Promise<ProtocolResponse> {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
@@ -127,6 +171,22 @@ export class DomesticService {
     };
   }
 
+  /**
+   * Requests courier pickup for packages
+   *
+   * @param params - Pickup parameters (date, time window, optional waybills)
+   * @returns Pickup call response with pickup ID and status
+   * @throws {DPDServiceError} When SOAP API call fails or response is invalid
+   * @example
+   * ```typescript
+   * const pickup = await client.domestic.pickupCall({
+   *   pickupDate: '2025-10-23',
+   *   pickupTimeFrom: '09:00',
+   *   pickupTimeTo: '12:00'
+   * });
+   * console.log(pickup.pickupId);
+   * ```
+   */
   async pickupCall(params: {
     pickupDate: string;
     pickupTimeFrom: string;

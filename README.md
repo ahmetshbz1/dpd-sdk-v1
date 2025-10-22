@@ -1,20 +1,25 @@
 # DPD Poland SDK
 
-Enterprise-grade TypeScript SDK for DPD Poland API integration with full type safety, runtime validation, and RAG documentation support.
+[![npm version](https://img.shields.io/npm/v/@ematu/dpd-sdk.svg)](https://www.npmjs.com/package/@ematu/dpd-sdk)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Enterprise-grade TypeScript SDK for DPD Poland API integration with full type safety, runtime validation, and comprehensive error handling.
 
 ## Features
 
-- Full TypeScript support with strict type checking
-- Runtime schema validation using Zod
-- SOAP service integration with automatic retry logic
-- Support for domestic and international shipments
-- Return label generation
-- Parcel tracking and status queries
-- PUDO/ParcelShop finder (pickup points)
-- Extended services (COD, Insurance, Guarantee, DPD Pickup)
-- Comprehensive error handling
-- Zero-config bundling with tsup
-- Tree-shakeable exports
+- **Full TypeScript Support** - Strict type checking with IntelliSense
+- **Runtime Validation** - Zod schema validation for API responses
+- **Automatic Retry Logic** - Exponential backoff for network errors
+- **Complete Service Coverage**
+  - Domestic & International shipping
+  - Return label generation
+  - Parcel tracking & status
+  - PUDO/ParcelShop finder
+- **Extended Services** - COD, Insurance, Guarantee, DPD Pickup
+- **Error Handling** - Custom error types with recovery patterns
+- **Tree-shakeable** - Zero-config bundling with tsup
+- **Comprehensive Examples** - Production-ready code samples
 
 ## Installation
 
@@ -31,40 +36,57 @@ pnpm add @ematu/dpd-sdk
 ```typescript
 import { DPDClient } from '@ematu/dpd-sdk';
 
+// 1. Create client
 const client = new DPDClient({
-  auth: {
-    login: '43130401',
-    password: 'your-password',
-    masterFid: '431304',
-  },
   environment: 'demo', // or 'production'
+  auth: {
+    login: process.env.DPD_LOGIN,
+    password: process.env.DPD_PASSWORD,
+    masterFid: process.env.DPD_MASTER_FID,
+  },
 });
 
+// 2. Initialize SOAP connection
 await client.initialize();
 
-// Generate domestic shipment
-const result = await client.domestic.generatePackageNumbers([{
-  sender: {
-    name: 'Your Company',
-    address: 'Street 123',
-    city: 'Warsaw',
-    postalCode: '00-001',
-    countryCode: 'PL',
+// 3. Generate domestic shipment
+const result = await client.domestic.generatePackageNumbers([
+  {
+    sender: {
+      name: 'Your Company',
+      address: 'Marszalkowska 1',
+      city: 'Warsaw',
+      postalCode: '00-001',
+      countryCode: 'PL',
+    },
+    receiver: {
+      name: 'Jan Kowalski',
+      address: 'Krakowska 10',
+      city: 'Krakow',
+      postalCode: '30-001',
+      countryCode: 'PL',
+    },
+    parcels: [{ weight: 2.5, content: 'Electronics' }],
+    payerType: 'SENDER',
   },
-  receiver: {
-    name: 'Customer Name',
-    address: 'Customer Street 456',
-    city: 'Krakow',
-    postalCode: '30-001',
-    countryCode: 'PL',
-  },
-  parcels: [{
-    weight: 5.5,
-  }],
-}]);
+]);
 
-console.log(result.packages[0].waybill);
+// 4. Get waybill
+console.log('Waybill:', result.packages[0].waybill);
+
+// 5. Generate label
+const label = await client.domestic.generateLabels(
+  [result.packages[0].waybill],
+  { format: 'PDF', pageFormat: 'A4' }
+);
 ```
+
+## Documentation
+
+- [Examples](./examples) - Real-world usage examples
+- [API Reference](#api-reference) - Complete API documentation
+- [Error Handling](#error-handling) - Error management best practices
+- [DPD API Docs](https://docs.dpd.com.pl/) - Official DPD documentation
 
 ## API Reference
 
@@ -89,7 +111,7 @@ interface DPDConfig {
 
 #### Methods
 
-- `initialize()` - Initialize SOAP client
+- `initialize()` - Initialize SOAP client connection
 
 ### Domestic Service
 
@@ -100,25 +122,29 @@ Access via `client.domestic`
 Generate domestic shipment numbers.
 
 ```typescript
-const result = await client.domestic.generatePackageNumbers([{
-  sender: Address,
-  receiver: Address,
-  parcels: [{
-    weight: number,
-    content?: string,
-    sizeX?: number,
-    sizeY?: number,
-    sizeZ?: number,
-  }],
-  payerType?: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY',
-  thirdPartyFid?: string,
-  ref1?: string,
-  services?: {
-    cod?: { amount: number },
-    cud?: boolean,
-    pudoReturn?: boolean,
+const result = await client.domestic.generatePackageNumbers([
+  {
+    sender: Address,
+    receiver: Address,
+    parcels: [
+      {
+        weight: number,
+        content?: string,
+        sizeX?: number,
+        sizeY?: number,
+        sizeZ?: number,
+      },
+    ],
+    payerType?: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY',
+    thirdPartyFid?: string,
+    ref1?: string,
+    services?: {
+      cod?: { amount: number; currency: string },
+      declaredValue?: { amount: number; currency: string },
+      guarantee?: { type: '12:00' | '18:00' | 'SATURDAY' },
+    },
   },
-}]);
+]);
 ```
 
 #### generateLabels(waybills, options?)
@@ -126,19 +152,20 @@ const result = await client.domestic.generatePackageNumbers([{
 Generate shipping labels.
 
 ```typescript
-const label = await client.domestic.generateLabels(
-  ['1000635967411U'],
-  {
-    format: 'PDF', // 'PDF' | 'ZPL' | 'EPL'
-    pageFormat: 'A4', // 'A4' | 'A6' | 'LBL'
-    variant: 'BIC3',
-  }
-);
+const label = await client.domestic.generateLabels(['1234567890'], {
+  format: 'PDF', // 'PDF' | 'ZPL' | 'EPL'
+  pageFormat: 'A4', // 'A4' | 'A6' | 'LBL'
+  variant: 'BIC3',
+});
 ```
 
 #### generateProtocol(waybills)
 
 Generate handover protocol.
+
+```typescript
+const protocol = await client.domestic.generateProtocol(['1234567890']);
+```
 
 #### pickupCall(params)
 
@@ -146,10 +173,10 @@ Order courier pickup.
 
 ```typescript
 await client.domestic.pickupCall({
-  pickupDate: '2025-01-22',
+  pickupDate: '2025-10-23',
   pickupTimeFrom: '09:00',
   pickupTimeTo: '17:00',
-  waybills: ['1000635967411U'],
+  waybills: ['1234567890'],
 });
 ```
 
@@ -162,13 +189,15 @@ Access via `client.international`
 Generate international shipment numbers.
 
 ```typescript
-const result = await client.international.generatePackageNumbers([{
-  sender: Address,
-  receiver: Address,
-  parcels: Parcel[],
-  payerType: 'THIRD_PARTY',
-  thirdPartyFid: '431305',
-}]);
+const result = await client.international.generatePackageNumbers([
+  {
+    sender: Address,
+    receiver: Address,
+    parcels: Parcel[],
+    payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY',
+    thirdPartyFid?: string,
+  },
+]);
 ```
 
 ### Return Service
@@ -181,7 +210,7 @@ Generate domestic return label.
 
 ```typescript
 const label = await client.returns.generateDomesticReturnLabel(
-  ['1000635967411U'],
+  ['1234567890'],
   {
     name: 'Your Company',
     address: 'Return Address',
@@ -202,21 +231,20 @@ Access via `client.tracking`
 
 #### getParcelStatus(waybill)
 
-Get parcel tracking information.
+Track parcel status and events.
 
 ```typescript
-const status = await client.tracking.getParcelStatus('1000635967411U');
-console.log(status.status); // Current status
-console.log(status.events); // Tracking events
+const status = await client.tracking.getParcelStatus('1234567890');
+console.log(status.status, status.events);
 ```
 
 #### getPostcodeInfo(postcode, countryCode?)
 
-Get postcode information and depot.
+Lookup postcode information.
 
 ```typescript
-const info = await client.tracking.getPostcodeInfo('02-274', 'PL');
-console.log(info.city); // Warszawa
+const info = await client.tracking.getPostcodeInfo('00-001', 'PL');
+console.log(info.city, info.depot);
 ```
 
 ### PUDO Service
@@ -225,64 +253,159 @@ Access via `client.pudo`
 
 #### findParcelShops(params)
 
-Find nearby pickup points.
+Search for nearby ParcelShop locations.
 
 ```typescript
 const shops = await client.pudo.findParcelShops({
-  city: 'Warszawa',
-  postalCode: '02-274',
+  city: 'Warsaw',
   countryCode: 'PL',
   limit: 10,
-  hideClosed: true,
-});
-
-shops.forEach(shop => {
-  console.log(shop.name, shop.pudoId);
 });
 ```
 
 #### getParcelShop(pudoId)
 
-Get specific pickup point details.
+Get specific ParcelShop details.
 
 ```typescript
-const shop = await client.pudo.getParcelShop('PL14187');
+const shop = await client.pudo.getParcelShop('PL12345');
 if (shop) {
-  console.log(shop.address, shop.openingHours);
+  console.log(shop.name, shop.address);
 }
 ```
 
 ## Error Handling
 
-The SDK provides typed error classes:
+The SDK provides custom error types for different scenarios:
 
 ```typescript
 import {
-  DPDError,
-  DPDAuthError,
-  DPDValidationError,
+  DPDClient,
   DPDServiceError,
   DPDNetworkError,
+  ValidationError,
 } from '@ematu/dpd-sdk';
 
 try {
   await client.domestic.generatePackageNumbers(packages);
 } catch (error) {
-  if (error instanceof DPDValidationError) {
-    console.error('Validation failed:', error.validationErrors);
-  } else if (error instanceof DPDAuthError) {
-    console.error('Authentication failed:', error.message);
-  } else if (error instanceof DPDNetworkError) {
+  // Network error - retry
+  if (error instanceof DPDNetworkError) {
     console.error('Network error:', error.message);
+    // Implement retry logic
+  }
+
+  // Service error - check error code
+  if (error instanceof DPDServiceError) {
+    console.error('Service error:', error.code);
+    if (error.code === 'AUTH_FAILED') {
+      // Handle auth error
+    }
+  }
+
+  // Validation error - user input problem
+  if (error instanceof ValidationError) {
+    console.error('Validation error:', error.field, error.value);
   }
 }
 ```
 
-## Testing
+### Retry Logic Example
 
-```bash
-npm run test
-npm run test:coverage
+```typescript
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      if (error instanceof DPDNetworkError) {
+        const delay = 1000 * Math.pow(2, attempt - 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+// Usage
+const result = await retryWithBackoff(() =>
+  client.domestic.generatePackageNumbers(packages)
+);
+```
+
+## Extended Services
+
+### COD (Cash on Delivery)
+
+```typescript
+const package = {
+  // ... sender, receiver, parcels
+  services: {
+    cod: {
+      amount: 250.0,
+      currency: 'PLN',
+    },
+  },
+};
+```
+
+### Declared Value Insurance
+
+```typescript
+const package = {
+  // ... sender, receiver, parcels
+  services: {
+    declaredValue: {
+      amount: 500.0,
+      currency: 'PLN',
+    },
+  },
+};
+```
+
+### Guarantee Services
+
+```typescript
+const package = {
+  // ... sender, receiver, parcels
+  services: {
+    guarantee: {
+      type: '12:00', // '12:00' | '18:00' | 'SATURDAY'
+    },
+  },
+};
+```
+
+## Environment Configuration
+
+```typescript
+// Demo/Test Environment
+const demoClient = new DPDClient({
+  environment: 'demo',
+  auth: {
+    login: process.env.DPD_DEMO_LOGIN,
+    password: process.env.DPD_DEMO_PASSWORD,
+    masterFid: process.env.DPD_DEMO_MASTER_FID,
+  },
+});
+
+// Production Environment
+const prodClient = new DPDClient({
+  environment: 'production',
+  auth: {
+    login: process.env.DPD_PROD_LOGIN,
+    password: process.env.DPD_PROD_PASSWORD,
+    masterFid: process.env.DPD_PROD_MASTER_FID,
+  },
+  timeout: 45000,
+  maxRetries: 5,
+});
 ```
 
 ## Development
@@ -291,22 +414,36 @@ npm run test:coverage
 # Install dependencies
 npm install
 
-# Type checking
+# Run typecheck
 npm run typecheck
+
+# Run linter
+npm run lint
+
+# Format code
+npm run format
+
+# Run tests
+npm test
 
 # Build
 npm run build
 
-# Lint
-npm run lint
+# Full validation
+npm run validate
 ```
 
 ## License
 
 MIT
 
-## Support
+## Contributing
 
-- DPD FID: 431304 / 43130401
-- Email: support@ematu.com
-- Documentation: https://docs.ematu.com/dpd-sdk
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## Links
+
+- [NPM Package](https://www.npmjs.com/package/@ematu/dpd-sdk)
+- [GitHub Repository](https://github.com/ematu/dpd-sdk)
+- [Examples](./examples)
+- [DPD API Documentation](https://docs.dpd.com.pl/)

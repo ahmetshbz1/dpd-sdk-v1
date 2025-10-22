@@ -9,16 +9,49 @@ import { ReturnService } from './services/return.js';
 import { TrackingService } from './services/tracking.js';
 import { PudoService } from './services/pudo.js';
 
+/**
+ * DPD Poland API Client
+ *
+ * Enterprise-grade TypeScript SDK for DPD Poland shipping services.
+ * Supports domestic/international shipping, returns, tracking, and PUDO services.
+ *
+ * @example
+ * ```typescript
+ * const client = new DPDClient({
+ *   environment: 'demo',
+ *   auth: {
+ *     login: 'your-fid',
+ *     password: 'your-password',
+ *     masterFid: 'your-master-fid'
+ *   }
+ * });
+ *
+ * await client.initialize();
+ *
+ * const result = await client.domestic.generatePackageNumbers([package]);
+ * ```
+ */
 export class DPDClient {
   private soapClient: SoapClient | null = null;
   private config: DPDConfig;
 
+  /** Domestic shipping operations */
   public readonly domestic: DomesticService;
+  /** International shipping operations */
   public readonly international: InternationalService;
+  /** Return label generation */
   public readonly returns: ReturnService;
+  /** Parcel tracking and postcode lookup */
   public readonly tracking: TrackingService;
+  /** PUDO/ParcelShop search and details */
   public readonly pudo: PudoService;
 
+  /**
+   * Creates a new DPD API client instance
+   *
+   * @param config - Client configuration with auth credentials and environment
+   * @throws {ValidationError} When config validation fails
+   */
   constructor(config: DPDConfig) {
     this.config = validateInput(DPDConfigSchema, config) as DPDConfig;
 
@@ -29,6 +62,17 @@ export class DPDClient {
     this.pudo = new PudoService(this);
   }
 
+  /**
+   * Initializes SOAP client connection
+   *
+   * Must be called before using any service methods.
+   *
+   * @throws {DPDNetworkError} When SOAP client creation fails
+   * @example
+   * ```typescript
+   * await client.initialize();
+   * ```
+   */
   async initialize(): Promise<void> {
     const endpoint = ENDPOINTS[this.config.environment].objServices;
     this.soapClient = await createSoapClient(endpoint, {
@@ -38,6 +82,10 @@ export class DPDClient {
     });
   }
 
+  /**
+   * @internal
+   * Returns initialized SOAP client
+   */
   getSoapClient(): SoapClient {
     if (!this.soapClient) {
       throw new Error(
@@ -47,6 +95,10 @@ export class DPDClient {
     return this.soapClient;
   }
 
+  /**
+   * @internal
+   * Returns current client configuration
+   */
   getConfig(): DPDConfig {
     return this.config;
   }
