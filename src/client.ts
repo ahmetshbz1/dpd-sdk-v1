@@ -80,7 +80,6 @@ export class DPDClient {
       maxRetries: this.config.maxRetries,
       retryDelay: 1000,
     });
-
   }
 
   /**

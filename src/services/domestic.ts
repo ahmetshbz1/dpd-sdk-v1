@@ -76,7 +76,8 @@ export class DomesticService {
     if (rawResult && typeof rawResult === 'object' && 'return' in rawResult) {
       const response = rawResult.return as Record<string, unknown>;
       if (response.Status && response.Status !== 'OK') {
-        const errorMsg = response.StatusInfo || response.Status || 'Unknown error';
+        const errorMsg =
+          response.StatusInfo || response.Status || 'Unknown error';
         throw new DPDServiceError(
           `DPD API Error: ${String(errorMsg)}`,
           'API_ERROR',
@@ -250,9 +251,10 @@ export class DomesticService {
         receiver: pkg.receiver,
         parcels: pkg.parcels,
         payerType: pkg.payerType || 'SENDER',
-        thirdPartyFID: pkg.payerType === 'THIRD_PARTY' 
-          ? (pkg.thirdPartyFid || config.auth.masterFid)
-          : undefined,
+        thirdPartyFID:
+          pkg.payerType === 'THIRD_PARTY'
+            ? pkg.thirdPartyFid || config.auth.masterFid
+            : undefined,
         ref1: pkg.ref1,
         ref2: pkg.ref2,
         ref3: pkg.ref3,
