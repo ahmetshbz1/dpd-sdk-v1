@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug';
 
 let level: LogLevel = (process.env.LOG_LEVEL as LogLevel) || 'error';

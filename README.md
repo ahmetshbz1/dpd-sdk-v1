@@ -81,6 +81,50 @@ const label = await client.domestic.generateLabels(
 );
 ```
 
+## High-level SDK (DPDSDK)
+
+Yüksek seviyeli sarmalayıcı ile hızlı kullanım:
+
+```ts
+import { DPDSDK, setLogLevel } from '@ematu/dpd-sdk'
+
+setLogLevel('info')
+
+const dpd = new DPDSDK({
+  auth: {
+    login: process.env.DPD_LOGIN!,
+    password: process.env.DPD_PASSWORD!,
+    masterFid: process.env.DPD_MASTER_FID!,
+  },
+  environment: 'production',
+})
+
+// Tek etiket oluşturma
+const label = await dpd.createLabel({
+  sender: { name: 'Acme', address: 'Marszalkowska 1', city: 'Warszawa', postalCode: '00-001', countryCode: 'PL', phone: '+48123456789', email: 'ship@acme.com' },
+  receiver: { name: 'Jan Kowalski', address: 'Krakowska 10', city: 'Krakow', postalCode: '30-001', countryCode: 'PL', phone: '+48987654321', email: 'jan@example.com' },
+  pkg: { weight: 1.5, content: 'Electronics' },
+  label: { format: 'PDF', pageFormat: 'A4', variant: 'BIC3' }
+})
+console.log(label.waybill, label.trackingUrl)
+
+// Toplu etiket
+const batch = await dpd.createLabelsBatch([/* CreateLabelRequest[] */])
+console.log('labels:', batch.labels.length, 'errors:', batch.errors.length)
+
+// Tracking (tek ve toplu)
+const t = await dpd.getTracking(label.waybill)
+const events = await dpd.getEvents(label.waybill)
+const many = await dpd.getBatchTracking([label.waybill])
+
+// Pickup
+await dpd.createPickup({ pickupDate: '2025-10-23', pickupTimeFrom: '09:00', pickupTimeTo: '17:00', waybills: [label.waybill] })
+```
+
+Notlar:
+- DPDSDK, mevcut `DPDClient` üstünde ergonomik bir katman sağlar; altta tüm SOAP çağrıları ve tip güvenliği korunur.
+- Log seviyesini `LOG_LEVEL` env veya `setLogLevel('info')` ile ayarlayabilirsiniz.
+
 ## Documentation
 
 - [Examples](./examples) - Real-world usage examples

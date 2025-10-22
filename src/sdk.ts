@@ -115,9 +115,7 @@ export class DPDSDK {
     };
   }
 
-  async createLabelsBatch(
-    reqs: CreateLabelRequest[]
-  ): Promise<{
+  async createLabelsBatch(reqs: CreateLabelRequest[]): Promise<{
     labels: LabelResult[];
     errors: { index: number; error: string }[];
   }> {
@@ -139,9 +137,7 @@ export class DPDSDK {
   }
 
   // Tracking
-  async getTracking(
-    waybill: string
-  ): Promise<{
+  async getTracking(waybill: string): Promise<{
     waybill: string;
     status: string;
     lastUpdate?: string;
@@ -159,11 +155,16 @@ export class DPDSDK {
   async getBatchTracking(
     waybills: string[]
   ): Promise<{ waybill: string; status: string; lastUpdate?: string }[]> {
-    const results: { waybill: string; status: string; lastUpdate?: string }[] = [];
+    const results: { waybill: string; status: string; lastUpdate?: string }[] =
+      [];
     for (const w of waybills) {
       try {
         const t = await this.client.tracking.getParcelStatus(w);
-        results.push({ waybill: t.waybill, status: t.status, lastUpdate: t.lastUpdate });
+        results.push({
+          waybill: t.waybill,
+          status: t.status,
+          lastUpdate: t.lastUpdate,
+        });
       } catch {
         results.push({ waybill: w, status: 'UNKNOWN' });
       }
