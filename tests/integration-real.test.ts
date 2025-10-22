@@ -5,7 +5,11 @@ import * as dotenv from 'dotenv';
 // Load .env file
 dotenv.config();
 
-describe('DPD SDK - Real API Integration', () => {
+const RUN_E2E = process.env.DPD_RUN_E2E === '1';
+const ENABLE_POSTCODE = process.env.DPD_ENABLE_POSTCODE === '1';
+const ENABLE_PUDO = process.env.DPD_PUDO_ENABLED === '1';
+
+describe.skipIf(!RUN_E2E)('DPD SDK - Real API Integration', () => {
   const client = new DPDClient({
     environment: 'production',
     auth: {
@@ -63,7 +67,7 @@ describe('DPD SDK - Real API Integration', () => {
     console.log('Package ID:', result.packages[0].packageId);
   }, 30000);
 
-  it('should get postcode info', async () => {
+  it.skipIf(!ENABLE_POSTCODE)('should get postcode info', async () => {
     await client.initialize();
 
     const info = await client.tracking.getPostcodeInfo('00-001', 'PL');
@@ -76,7 +80,7 @@ describe('DPD SDK - Real API Integration', () => {
     console.log('Depot:', info.depot);
   }, 30000);
 
-  it('should find PUDO parcel shops', async () => {
+  it.skipIf(!ENABLE_PUDO)('should find PUDO parcel shops', async () => {
     await client.initialize();
 
     const shops = await client.pudo.findParcelShops({

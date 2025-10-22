@@ -426,6 +426,20 @@ const package = {
 };
 ```
 
+## Tests
+
+- Unit/Type tests: `npm test`
+- E2E (opsiyonel, gerçek DPD hesabı ile):
+  ```bash
+  export DPD_RUN_E2E=1
+  export DPD_PROD_LOGIN=...; export DPD_PROD_PASSWORD=...; export DPD_PROD_MASTER_FID=...
+  npm test -- tests/e2e/*.test.ts
+  ```
+
+## CI
+
+- GitHub Actions matrisi eklenmiştir (Node 18/20/22). E2E, repo secrets tanımlıysa otomatik koşar (DPD_LOGIN, DPD_PASSWORD, DPD_MASTER_FID).
+
 ## Environment Configuration
 
 ### Setup .env File

@@ -25,7 +25,7 @@ describe('DPD SDK - Production Basic Test', () => {
     }
   }, 30000);
 
-  it('should generate domestic package numbers', async () => {
+  it.skipIf(process.env.DPD_RUN_E2E !== '1')('should generate domestic package numbers', async () => {
     const client = new DPDClient({
       environment: 'production',
       auth: {
@@ -76,7 +76,7 @@ describe('DPD SDK - Production Basic Test', () => {
     }
   }, 30000);
 
-  it('should connect to PUDO production API', async () => {
+  it.skipIf(process.env.DPD_PUDO_ENABLED !== '1')('should connect to PUDO production API', async () => {
     const client = new DPDClient({
       environment: 'production',
       auth: {
