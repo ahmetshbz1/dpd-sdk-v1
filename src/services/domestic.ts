@@ -53,22 +53,37 @@ export class DomesticService {
     const soapClient = this.client.getSoapClient();
     const config = this.client.getConfig();
 
+    const payload = {
+      openUMLFeV3: this.buildOpenUMLPayload(
+        validatedPackages as Array<
+          Omit<DomesticPackage, 'payerType'> & {
+            payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
+          }
+        >
+      ),
+      pkgNumsGenerationPolicyV1: 'STOP_ON_FIRST_ERROR',
+      langCode: 'PL',
+      authDataV1: config.auth,
+    };
+
     const rawResult = await invokeSoapMethod(
       soapClient,
-      'generatePackagesNumbersV9',
-      {
-        openUMLFeV11: this.buildOpenUMLPayload(
-          validatedPackages as Array<
-            Omit<DomesticPackage, 'payerType'> & {
-              payerType: 'SENDER' | 'RECEIVER' | 'THIRD_PARTY';
-            }
-          >
-        ),
-        pkgNumsGenerationPolicyV1: 'STOP_ON_FIRST_ERROR',
-        langCode: 'PL',
-        authDataV1: config.auth,
-      }
+      'generatePackagesNumbersV4',
+      payload
     );
+
+    // Check for API-level errors
+    if (rawResult && typeof rawResult === 'object' && 'return' in rawResult) {
+      const response = rawResult.return as Record<string, unknown>;
+      if (response.Status && response.Status !== 'OK') {
+        const errorMsg = response.StatusInfo || response.Status || 'Unknown error';
+        throw new DPDServiceError(
+          `DPD API Error: ${String(errorMsg)}`,
+          'API_ERROR',
+          response
+        );
+      }
+    }
 
     // Runtime validation with Zod
     const parseResult =
@@ -228,13 +243,16 @@ export class DomesticService {
       }
     >
   ): unknown {
+    const config = this.client.getConfig();
     return {
       packages: packages.map(pkg => ({
         sender: pkg.sender,
         receiver: pkg.receiver,
         parcels: pkg.parcels,
         payerType: pkg.payerType || 'SENDER',
-        thirdPartyFID: pkg.thirdPartyFid,
+        thirdPartyFID: pkg.payerType === 'THIRD_PARTY' 
+          ? (pkg.thirdPartyFid || config.auth.masterFid)
+          : undefined,
         ref1: pkg.ref1,
         ref2: pkg.ref2,
         ref3: pkg.ref3,
